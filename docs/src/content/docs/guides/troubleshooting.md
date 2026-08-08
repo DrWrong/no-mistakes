@@ -115,6 +115,7 @@ If a native agent is installed in a version-manager shim directory or another no
 ```yaml
 agent_path_override:
   claude: /Users/you/.local/bin/claude
+  traex: /Users/you/.local/bin/traex
 ```
 
 For `agent: acp:<target>` and ACP aliases such as `agent: cursor`, set `acpx_path` for the bridge.

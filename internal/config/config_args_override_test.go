@@ -31,6 +31,10 @@ agent_args_override:
   opencode:
     - --model
     - gpt-5
+  traex:
+    - --model
+    - doubao-seed-2.0-code
+
 `
 	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
 		t.Fatal(err)
@@ -46,6 +50,7 @@ agent_args_override:
 		"codex":    {"-m", "gpt-5.4", "-c", `service_tier="priority"`, "-c", `model_reasoning_effort="low"`},
 		"rovodev":  {"--profile", "work"},
 		"opencode": {"--model", "gpt-5"},
+		"traex":    {"--model", "doubao-seed-2.0-code"},
 	}
 	for agent, want := range cases {
 		got := cfg.AgentArgsOverride[agent]
@@ -111,6 +116,19 @@ func TestLoadGlobal_AgentArgsOverride_ReservedArgsRejected(t *testing.T) {
 		{"codex", "--json"},
 		{"codex", "--color"},
 		{"codex", "--color=never"},
+		{"traex", "exec"},
+		{"traex", "resume"},
+		{"traex", "--session-id"},
+		{"traex", "--ephemeral"},
+		{"traex", "--output-schema"},
+		{"traex", "--json"},
+		{"traex", "--output-last-message"},
+		{"traex", "-o"},
+		{"traex", "--cd"},
+		{"traex", "-C"},
+		{"traex", "--add-dir"},
+		{"traex", "--color"},
+		{"traex", "--"},
 		{"rovodev", "rovodev"},
 		{"rovodev", "serve"},
 		{"rovodev", "--disable-session-token"},

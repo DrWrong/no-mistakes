@@ -137,6 +137,7 @@ const (
 	AgentAuto     AgentName = "auto"
 	AgentClaude   AgentName = "claude"
 	AgentCodex    AgentName = "codex"
+	AgentTraex    AgentName = "traex"
 	AgentRovoDev  AgentName = "rovodev"
 	AgentOpenCode AgentName = "opencode"
 	AgentPi       AgentName = "pi"

@@ -11,8 +11,17 @@ import (
 // the user's home directory, that init populates. `~/.claude/skills` is Claude
 // Code's personal-skill location (OpenCode reads it too); `~/.agents/skills`
 // is the vendor-neutral user-level convention Codex, OpenCode, Rovo Dev, and
-// Pi all read.
+// Pi all read; `~/.trae/skills` is TraeX's native user-skill location.
 var InstallBases = []string{
+	filepath.Join(".claude", "skills"),
+	filepath.Join(".agents", "skills"),
+	filepath.Join(".trae", "skills"),
+}
+
+// legacyVendoredBases are the repo-local locations written by releases that
+// predated the user-level install. Native TraeX support did not exist then, so
+// a repo's .trae skill must not be mislabeled as a removable legacy copy.
+var legacyVendoredBases = []string{
 	filepath.Join(".claude", "skills"),
 	filepath.Join(".agents", "skills"),
 }
@@ -33,7 +42,7 @@ func InstallUser() ([]string, error) {
 // Writing is idempotent: re-running overwrites with identical content
 // (refreshing a stale SKILL.md from an older version).
 //
-// Users may consolidate the two bases with a symlink - `.claude/skills` ->
+// Users may consolidate the Claude and vendor-neutral bases with a symlink - `.claude/skills` ->
 // `.agents/skills`, the whole `.claude` dir -> `.agents`, or the reverse. Install
 // follows such links transparently, including when the symlinked target dir does
 // not exist yet (a plain os.MkdirAll would fail with "file exists" on a dangling
@@ -67,7 +76,7 @@ func Install(root string) ([]string, error) {
 // needed. It never modifies the repo.
 func Vendored(repoRoot string) []string {
 	var found []string
-	for _, base := range InstallBases {
+	for _, base := range legacyVendoredBases {
 		rel := filepath.Join(base, Name, "SKILL.md")
 		if _, err := os.Stat(filepath.Join(repoRoot, rel)); err == nil {
 			found = append(found, rel)

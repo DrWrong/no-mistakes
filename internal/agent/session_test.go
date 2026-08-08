@@ -7,9 +7,9 @@ import (
 )
 
 // TestSupportsSessionResume_PerAdapter pins which adapters advertise durable
-// session resume. Claude and codex have native resume (claude --resume,
-// codex exec resume); every other adapter must run cold so the pipeline's
-// fallback path records the cold invocation instead of assuming reuse.
+// session resume. Claude, Codex, and TraeX have native resume; every other
+// adapter must run cold so the pipeline's fallback path records the cold
+// invocation instead of assuming reuse.
 func TestSupportsSessionResume_PerAdapter(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -18,6 +18,7 @@ func TestSupportsSessionResume_PerAdapter(t *testing.T) {
 	}{
 		{"claude", &claudeAgent{bin: "claude"}, true},
 		{"codex", &codexAgent{bin: "codex"}, true},
+		{"traex", &traexAgent{bin: "traex"}, true},
 		{"rovodev", &rovodevAgent{bin: "acli"}, false},
 		{"opencode", &opencodeAgent{bin: "opencode"}, false},
 		{"pi", &piAgent{bin: "pi"}, false},

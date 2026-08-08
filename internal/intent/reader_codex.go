@@ -21,25 +21,60 @@ import (
 // CodexReaderName is the agent name used in cache keys and DB rows.
 const CodexReaderName = "codex"
 
+// TraexReaderName is the agent name used in cache keys and DB rows.
+const TraexReaderName = "traex"
+
 // codexReader reads Codex CLI sessions. Session metadata (cwd, timestamps,
 // rollout path) lives in ~/.codex/state_*.sqlite; the actual transcript is
 // a JSONL rollout file referenced by threads.rollout_path. We use the
 // SQLite to filter candidates fast, then parse the rollout to recover the
 // full user/assistant turn-by-turn text needed for intent inference.
-type codexReader struct{}
+type codexReader struct {
+	name      string
+	homePath  string
+	errorName string
+}
 
 // NewCodexReader returns a Reader for Codex CLI transcripts.
-func NewCodexReader() Reader { return &codexReader{} }
+func NewCodexReader() Reader {
+	return &codexReader{name: CodexReaderName, homePath: ".codex", errorName: "codex"}
+}
 
-func (r *codexReader) Name() string { return CodexReaderName }
+// NewTraexReader returns a Reader for native TraeX CLI transcripts. TraeX
+// stores the same threads table and rollout envelope as Codex under its own
+// ~/.trae/cli root, so parsing is shared without conflating agent identity.
+func NewTraexReader() Reader {
+	return &codexReader{name: TraexReaderName, homePath: filepath.Join(".trae", "cli"), errorName: "traex"}
+}
+
+func (r *codexReader) Name() string {
+	if r.name == "" {
+		return CodexReaderName
+	}
+	return r.name
+}
+
+func (r *codexReader) root(home string) string {
+	if r.homePath == "" {
+		return filepath.Join(home, ".codex")
+	}
+	return filepath.Join(home, r.homePath)
+}
+
+func (r *codexReader) errorPrefix() string {
+	if r.errorName == "" {
+		return "codex"
+	}
+	return r.errorName
+}
 
 func (r *codexReader) Discover(ctx context.Context, opts DiscoverOpts) ([]*Session, error) {
 	home, err := resolveHome(opts.HomeDir)
 	if err != nil {
 		return nil, err
 	}
-	codexHome := filepath.Join(home, ".codex")
-	dbPath, err := resolveCodexStateDB(codexHome)
+	agentHome := r.root(home)
+	dbPath, err := resolveCodexStateDB(agentHome)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +84,7 @@ func (r *codexReader) Discover(ctx context.Context, opts DiscoverOpts) ([]*Sessi
 
 	db, err := sql.Open("sqlite", dbPath+"?mode=ro&_pragma=busy_timeout(2000)")
 	if err != nil {
-		return nil, fmt.Errorf("codex open: %w", err)
+		return nil, fmt.Errorf("%s open: %w", r.errorPrefix(), err)
 	}
 	defer db.Close()
 
@@ -82,12 +117,12 @@ func (r *codexReader) Discover(ctx context.Context, opts DiscoverOpts) ([]*Sessi
 		if !matcher.matches(ctx, cwd) {
 			continue
 		}
-		// Resolve relative rollout paths against ~/.codex.
+		// Resolve relative rollout paths against the owning agent's state root.
 		if rolloutPath != "" && !filepath.IsAbs(rolloutPath) {
-			rolloutPath = filepath.Join(codexHome, rolloutPath)
+			rolloutPath = filepath.Join(agentHome, rolloutPath)
 		}
 		out = append(out, &Session{
-			AgentName:     CodexReaderName,
+			AgentName:     r.Name(),
 			SessionID:     id,
 			CWD:           cwd,
 			StartedAt:     time.Unix(createdAt, 0).UTC(),
@@ -106,14 +141,14 @@ func (r *codexReader) Load(_ context.Context, s *Session) error {
 	if s.startedAtPath == "" {
 		// No rollout file. Without per-turn text, this session can't
 		// contribute meaningful intent; skip rather than fabricate.
-		return fmt.Errorf("codex: session has no rollout path")
+		return fmt.Errorf("%s: session has no rollout path", r.errorPrefix())
 	}
 	f, err := os.Open(s.startedAtPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("codex rollout missing: %s", s.startedAtPath)
+			return fmt.Errorf("%s rollout missing: %s", r.errorPrefix(), s.startedAtPath)
 		}
-		return fmt.Errorf("codex open rollout: %w", err)
+		return fmt.Errorf("%s open rollout: %w", r.errorPrefix(), err)
 	}
 	defer f.Close()
 
@@ -132,7 +167,7 @@ func (r *codexReader) Load(_ context.Context, s *Session) error {
 		s.Messages = append(s.Messages, msg)
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("codex rollout scan: %w", err)
+		return fmt.Errorf("%s rollout scan: %w", r.errorPrefix(), err)
 	}
 	return nil
 }

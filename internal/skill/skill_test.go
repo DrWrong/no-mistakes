@@ -91,7 +91,7 @@ func TestBodyDocumentsAxiGateGuidance(t *testing.T) {
 	}
 }
 
-func TestInstallWritesBothPaths(t *testing.T) {
+func TestInstallWritesEveryAgentPath(t *testing.T) {
 	root := t.TempDir()
 	written, err := Install(root)
 	if err != nil {
@@ -100,6 +100,7 @@ func TestInstallWritesBothPaths(t *testing.T) {
 	wantRel := []string{
 		filepath.Join(".claude", "skills", Name, "SKILL.md"),
 		filepath.Join(".agents", "skills", Name, "SKILL.md"),
+		filepath.Join(".trae", "skills", Name, "SKILL.md"),
 	}
 	if len(written) != len(wantRel) {
 		t.Fatalf("written = %v, want %v", written, wantRel)
@@ -162,12 +163,12 @@ func TestInstallIsIdempotent(t *testing.T) {
 	}
 }
 
-// TestInstallSymlinkLayouts covers home directories that consolidate the two
-// skill bases with a symlink. `.claude/skills` may link to `.agents/skills`,
+// TestInstallSymlinkLayouts covers home directories that consolidate the
+// Claude and vendor-neutral skill bases with a symlink. `.claude/skills` may link to `.agents/skills`,
 // the whole `.claude` dir may link to `.agents`, or the link may point the
 // other way. In every case Install must succeed and the skill must be
-// reachable via both logical bases - including when the symlink target dir
-// does not exist yet.
+// reachable via every logical base - including when the symlink target dir does
+// not exist yet. The independent TraeX base must remain reachable too.
 func TestInstallSymlinkLayouts(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -232,8 +233,8 @@ func TestInstallSymlinkLayouts(t *testing.T) {
 				}
 			}
 
-			// The skill must be discoverable via both logical bases no matter
-			// which side carries the symlink.
+			// The skill must be discoverable via every logical base no matter
+			// which side carries the Claude/vendor-neutral symlink.
 			for _, base := range InstallBases {
 				p := filepath.Join(root, base, Name, "SKILL.md")
 				data, err := os.ReadFile(p)
@@ -289,7 +290,7 @@ func TestVendored(t *testing.T) {
 		}
 	})
 
-	t.Run("both_copies", func(t *testing.T) {
+	t.Run("legacy_copies_only", func(t *testing.T) {
 		root := t.TempDir()
 		for _, base := range InstallBases {
 			dir := filepath.Join(root, base, Name)

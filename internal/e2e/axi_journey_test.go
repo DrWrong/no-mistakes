@@ -981,7 +981,7 @@ func TestAxiRunReportsImmediateAgentlessFailureWithoutRerun(t *testing.T) {
 		t.Fatalf("nm init: %v\n%s", err, out)
 	}
 
-	for _, name := range []string{"claude", "codex", "opencode"} {
+	for _, name := range []string{"claude", "codex", "traex", "opencode"} {
 		if err := os.Remove(filepath.Join(h.BinDir, name)); err != nil {
 			t.Fatalf("remove fake %s agent: %v", name, err)
 		}
@@ -1210,15 +1210,16 @@ func anyPromptContains(h *Harness, sub string) bool {
 	return false
 }
 
-// assertSkillInstalled verifies init wrote the no-mistakes skill into both
-// user-level agent skill directories (the Claude Code and vendor-neutral
-// conventions under the user's home) with valid frontmatter, and left the
-// repo's working tree untouched by skill files.
+// assertSkillInstalled verifies init wrote the no-mistakes skill into every
+// user-level agent skill directory (Claude Code, vendor-neutral, and TraeX)
+// with valid frontmatter, and left the repo's working tree untouched by skill
+// files.
 func assertSkillInstalled(t *testing.T, h *Harness) {
 	t.Helper()
 	for _, rel := range []string{
 		filepath.Join(".claude", "skills", "no-mistakes", "SKILL.md"),
 		filepath.Join(".agents", "skills", "no-mistakes", "SKILL.md"),
+		filepath.Join(".trae", "skills", "no-mistakes", "SKILL.md"),
 	} {
 		path := filepath.Join(h.HomeDir, rel)
 		data, err := os.ReadFile(path)
