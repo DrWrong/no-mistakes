@@ -7,6 +7,7 @@ func AllReaders(disabled map[string]bool) []Reader {
 	all := []Reader{
 		NewClaudeReader(),
 		NewCodexReader(),
+		NewTraexReader(),
 		NewOpenCodeReader(),
 		NewRovoDevReader(),
 		NewPiReader(),

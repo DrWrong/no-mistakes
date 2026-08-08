@@ -36,8 +36,8 @@ no-mistakes init --fork-url git@github.com:you/my-repo.git
 | ------------ | -------- | ------- | ----------------------------------------------------------------------------- |
 | `--fork-url` | `string` | (none)  | GitHub fork remote URL to push branches to while opening PRs against `origin` |
 
-Creates or refreshes a local bare repo, installs the managed pre-receive admission and post-receive notification hooks, best-effort isolates the gate repo's hook path from shared git config changes when Git supports `config --worktree`, adds or repairs the `no-mistakes` git remote, detects the default branch, records or updates the repo in SQLite, installs the `/no-mistakes` agent skill at user level into `~/.claude/skills/no-mistakes/SKILL.md` and `~/.agents/skills/no-mistakes/SKILL.md`, and ensures the daemon is running, installing the managed service when available and falling back to a detached daemon otherwise.
-`init` writes no skill files into the repo; the user-level copies cover every supported agent (`~/.claude/skills` for Claude Code, `~/.agents/skills` for Codex, OpenCode, Rovo Dev, and Pi) across all repos.
+Creates or refreshes a local bare repo, installs the managed pre-receive admission and post-receive notification hooks, best-effort isolates the gate repo's hook path from shared git config changes when Git supports `config --worktree`, adds or repairs the `no-mistakes` git remote, detects the default branch, records or updates the repo in SQLite, installs the `/no-mistakes` agent skill at user level into `~/.claude/skills/no-mistakes/SKILL.md`, `~/.agents/skills/no-mistakes/SKILL.md`, and `~/.trae/skills/no-mistakes/SKILL.md`, and ensures the daemon is running, installing the managed service when available and falling back to a detached daemon otherwise.
+`init` writes no skill files into the repo; the user-level copies cover every supported skill-capable agent (`~/.claude/skills` for Claude Code, `~/.agents/skills` for Codex, OpenCode, Rovo Dev, and Pi, and `~/.trae/skills` for TraeX) across all repos.
 If the home `.claude` links to `.agents`, `.claude/skills` links to `.agents/skills`, or the reverse, `init` follows that layout and still makes the skill readable from both logical paths.
 If the repo still contains a vendored skill copy written by an older no-mistakes version, `init` leaves it untouched and prints a notice that it is no longer needed and can be removed.
 The gate advertises Git push-option support, so you can skip steps for one push with `git push -o no-mistakes.skip=test,lint no-mistakes <branch>`.
@@ -238,7 +238,7 @@ no-mistakes axi logs --step review --run <id>
 | `--full` | `bool`   | `false`      | Show the entire log instead of the tail |
 
 Without `--full`, long logs show the last 40 lines and a help hint for the full log.
-Step logs include native subprocess agent lifecycle lines such as `codex started pid=4242`, `codex exited pid=4242 status=success`, and transient retry messages when the selected agent supports lifecycle events.
+Step logs include native subprocess agent lifecycle lines such as `traex started pid=4242`, `traex exited pid=4242 status=success`, and transient retry messages when the selected agent supports lifecycle events.
 They also include fix-loop markers such as `auto-fix round 1/3 starting after round 1` and `user-fix round starting after round 2`.
 
 ## no-mistakes axi abort
@@ -407,7 +407,7 @@ Checks:
 - Data directory (`~/.no-mistakes/`)
 - SQLite database
 - Daemon status
-- Agent runners: native binaries `claude`, `codex`, `acli`, `opencode`, `pi`, and `copilot`, plus the optional ACP bridge `acpx`
+- Agent runners: native binaries `claude`, `codex`, `traex`, `acli`, `opencode`, `pi`, and `copilot`, plus the optional ACP bridge `acpx`
 - ACP alias default binaries: `cursor-agent` plus `acpx` for `cursor`
 - Effective global agent configuration, reported as `gate validation`; an unavailable configured runner is a failed check because the gate cannot validate without it
 

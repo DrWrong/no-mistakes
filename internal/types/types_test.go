@@ -97,6 +97,7 @@ func TestACPTargetFor(t *testing.T) {
 		{name: "explicit acp alias target", agent: "acp:cursor", wantTarget: "cursor", wantOK: true},
 		{name: "explicit acp target", agent: "acp:gemini", wantTarget: "gemini", wantOK: true},
 		{name: "native agent", agent: AgentClaude, wantTarget: "", wantOK: false},
+		{name: "native traex is not acp", agent: AgentTraex, wantTarget: "", wantOK: false},
 		{name: "empty target", agent: "acp:", wantTarget: "", wantOK: false},
 		{name: "whitespace in target", agent: "acp:foo bar", wantTarget: "", wantOK: false},
 	}

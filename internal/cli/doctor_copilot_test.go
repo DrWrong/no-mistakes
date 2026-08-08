@@ -41,7 +41,7 @@ func TestDoctorListsCopilotAgent(t *testing.T) {
 		t.Fatalf("doctor report missing copilot agent entry:\n%s", out)
 	}
 	// The copilot line must show the detected fake binary path, proving doctor
-	// probes the copilot binary alongside claude/codex/rovodev/opencode/pi.
+	// probes the copilot binary alongside claude/codex/traex/rovodev/opencode/pi.
 	if !strings.Contains(out, copilotPath) {
 		t.Fatalf("doctor did not detect copilot at %q:\n%s", copilotPath, out)
 	}

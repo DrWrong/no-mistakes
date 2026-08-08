@@ -547,7 +547,7 @@ const defaultConfigYAML = `# no-mistakes global configuration
 
 # Agent to use for code generation. This may also be an ordered fallback list,
 # for example: agent: [codex, claude]
-# Options: auto, claude, codex, rovodev, opencode, pi, copilot, cursor, acp:<target>
+# Options: auto, claude, codex, traex, rovodev, opencode, pi, copilot, cursor, acp:<target>
 # "auto" detects the first available native agent or ACP alias on your system
 # "cursor" is an ACP alias for acp:cursor using cursor-agent acp via acpx
 # "acp:cursor" also uses that Cursor default command
@@ -581,8 +581,8 @@ daemon_connect_timeout: "3s"
 
 # Reuse one durable fixer session per run across review-fix turns. Review turns
 # always run session-free so a rereview never resumes the session that prescribed
-# its fixes. Supported for claude and codex; other agents run cold. Set false to
-# force every agent invocation cold.
+# its fixes. Supported for claude, codex, and traex; other agents run cold. Set
+# false to force every agent invocation cold.
 session_reuse: true
 
 # Log level for daemon output
@@ -593,6 +593,7 @@ log_level: info
 # agent_path_override:
 #   claude: /usr/local/bin/claude
 #   codex: /opt/codex
+#   traex: /home/me/.local/bin/traex
 
 # Extra native agent CLI flags (optional, global only)
 # Codex service_tier controls speed/priority; model_reasoning_effort controls reasoning depth.
@@ -632,8 +633,8 @@ ci:
 #   fix_message: "no-mistakes({{.Step}}): {{.Summary}}"
 
 # User-intent extraction. When you push a branch, no-mistakes can read recent
-# transcripts from your local agent (Claude Code, Codex, OpenCode, Rovo Dev, Pi,
-# Copilot CLI), pick the session that produced the change, summarize the user
+# transcripts from your local agent (Claude Code, Codex, TraeX, OpenCode, Rovo
+# Dev, Pi, Copilot CLI), pick the session that produced the change, summarize the user
 # intent, and feed it to review, test, document, lint, and PR agents so they
 # understand what you were trying to do - not just the diff.
 intent:
@@ -659,6 +660,7 @@ intent:
 var defaultBinary = map[types.AgentName]string{
 	types.AgentClaude:   "claude",
 	types.AgentCodex:    "codex",
+	types.AgentTraex:    "traex",
 	types.AgentRovoDev:  "acli",
 	types.AgentOpenCode: "opencode",
 	types.AgentPi:       "pi",
@@ -669,6 +671,7 @@ var defaultBinary = map[types.AgentName]string{
 var nativeAgentProbeOrder = []types.AgentName{
 	types.AgentClaude,
 	types.AgentCodex,
+	types.AgentTraex,
 	types.AgentOpenCode,
 	types.AgentRovoDev,
 	types.AgentPi,
@@ -858,7 +861,7 @@ func (c *Config) resolveConfiguredAgent(ctx context.Context, name types.AgentNam
 		return resolved, err == nil, "auto", err
 	}
 	if _, ok := defaultBinary[name]; !ok && !isACPAgent(name) {
-		return "", false, string(name), fmt.Errorf("unknown agent %q; valid options: auto, claude, codex, rovodev, opencode, pi, copilot, cursor, acp:<target> (set 'agent' in ~/.no-mistakes/config.yaml)", name)
+		return "", false, string(name), fmt.Errorf("unknown agent %q; valid options: auto, claude, codex, traex, rovodev, opencode, pi, copilot, cursor, acp:<target> (set 'agent' in ~/.no-mistakes/config.yaml)", name)
 	}
 	if isACPAgent(name) {
 		available, bins, err := c.acpAvailable(name, lookPath)
@@ -1015,6 +1018,7 @@ func (c *Config) AgentArgsFor(name types.AgentName) []string {
 var agentArgsOverrideAgents = map[string]bool{
 	string(types.AgentClaude):   true,
 	string(types.AgentCodex):    true,
+	string(types.AgentTraex):    true,
 	string(types.AgentRovoDev):  true,
 	string(types.AgentOpenCode): true,
 	string(types.AgentPi):       true,
@@ -1050,6 +1054,25 @@ var reservedAgentArgs = map[string]map[string]bool{
 		"--json":       true,
 		"--color":      true,
 	},
+	string(types.AgentTraex): {
+		"exec":                  true,
+		"resume":                true,
+		"review":                true,
+		"--last":                true,
+		"--all":                 true,
+		"--session-id":          true,
+		"--ephemeral":           true,
+		"--output-schema":       true,
+		"--json":                true,
+		"-o":                    true,
+		"--output-last-message": true,
+		"-C":                    true,
+		"--cd":                  true,
+		"--add-dir":             true,
+		"--color":               true,
+		"-":                     true,
+		"--":                    true,
+	},
 	string(types.AgentRovoDev): {
 		"rovodev":                 true,
 		"serve":                   true,
@@ -1079,7 +1102,7 @@ var reservedAgentArgs = map[string]map[string]bool{
 func validateAgentArgsOverride(override map[string][]string) error {
 	for name, args := range override {
 		if !agentArgsOverrideAgents[name] {
-			return fmt.Errorf("invalid agent name in agent_args_override: %q (valid: claude, codex, rovodev, opencode, pi, copilot)", name)
+			return fmt.Errorf("invalid agent name in agent_args_override: %q (valid: claude, codex, traex, rovodev, opencode, pi, copilot)", name)
 		}
 		reserved := reservedAgentArgs[name]
 		for i, arg := range args {

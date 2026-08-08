@@ -17,11 +17,17 @@ import (
 
 func TestAgentPath_Override(t *testing.T) {
 	cfg := &Config{
-		Agent:             types.AgentClaude,
-		AgentPathOverride: map[string]string{"claude": "/custom/claude"},
+		Agent: types.AgentTraex,
+		AgentPathOverride: map[string]string{
+			"claude": "/custom/claude",
+			"traex":  "/home/test/.local/bin/traex",
+		},
 	}
-	if got := cfg.AgentPath(); got != "/custom/claude" {
-		t.Errorf("AgentPath() = %q, want %q", got, "/custom/claude")
+	if got := cfg.AgentPath(); got != "/home/test/.local/bin/traex" {
+		t.Errorf("AgentPath() = %q, want TraeX override", got)
+	}
+	if got := cfg.AgentPathFor(types.AgentClaude); got != "/custom/claude" {
+		t.Errorf("AgentPathFor(claude) = %q, want Claude override", got)
 	}
 }
 
@@ -32,6 +38,7 @@ func TestAgentPath_DefaultBinaries(t *testing.T) {
 	}{
 		{types.AgentClaude, "claude"},
 		{types.AgentCodex, "codex"},
+		{types.AgentTraex, "traex"},
 		{types.AgentRovoDev, "acli"},
 		{types.AgentOpenCode, "opencode"},
 		{types.AgentPi, "pi"},
@@ -99,6 +106,43 @@ func TestResolveAgent_ExplicitAgent(t *testing.T) {
 	}
 	if cfg.Agent != types.AgentCodex {
 		t.Errorf("agent = %q, want %q", cfg.Agent, types.AgentCodex)
+	}
+}
+
+func TestResolveAgent_ExplicitTraex(t *testing.T) {
+	cfg := &Config{Agent: types.AgentTraex}
+	err := cfg.ResolveAgent(context.Background(), func(bin string) (string, error) {
+		if bin != "traex" {
+			t.Fatalf("lookPath(%q), want traex", bin)
+		}
+		return "/home/test/.local/bin/traex", nil
+	})
+	if err != nil {
+		t.Fatalf("ResolveAgent: %v", err)
+	}
+	if cfg.Agent != types.AgentTraex {
+		t.Fatalf("agent = %q, want traex", cfg.Agent)
+	}
+}
+
+func TestResolveAgent_AutoPrefersTraexBeforeOpenCode(t *testing.T) {
+	cfg := &Config{Agent: types.AgentAuto}
+	err := cfg.ResolveAgent(context.Background(), func(bin string) (string, error) {
+		switch bin {
+		case "claude", "codex":
+			return "", &exec.Error{Name: bin, Err: exec.ErrNotFound}
+		case "traex", "opencode":
+			return "/usr/local/bin/" + bin, nil
+		default:
+			t.Fatalf("unexpected probe after TraeX resolved: %q", bin)
+			return "", nil
+		}
+	})
+	if err != nil {
+		t.Fatalf("ResolveAgent: %v", err)
+	}
+	if cfg.Agent != types.AgentTraex {
+		t.Fatalf("agent = %q, want traex", cfg.Agent)
 	}
 }
 
@@ -350,7 +394,7 @@ func TestResolveAgent_AutoSkipsRovoDevWithoutSubcommand(t *testing.T) {
 
 	err := cfg.ResolveAgent(context.Background(), func(bin string) (string, error) {
 		switch bin {
-		case "claude", "codex", "opencode", "pi", "copilot", "cursor-agent", "acpx":
+		case "claude", "codex", "traex", "opencode", "pi", "copilot", "cursor-agent", "acpx":
 			return "", &exec.Error{Name: bin, Err: exec.ErrNotFound}
 		case "acli":
 			return "/usr/bin/acli", nil
@@ -382,7 +426,7 @@ func TestResolveAgent_AutoReturnsRovoDevProbeExitError(t *testing.T) {
 
 	err := cfg.ResolveAgent(context.Background(), func(bin string) (string, error) {
 		switch bin {
-		case "claude", "codex", "opencode", "pi":
+		case "claude", "codex", "traex", "opencode", "pi":
 			return "", &exec.Error{Name: bin, Err: exec.ErrNotFound}
 		case "acli":
 			return script, nil
@@ -722,7 +766,7 @@ func TestResolveAgent_AutoPassesContextToRovoDevProbe(t *testing.T) {
 
 	err := cfg.ResolveAgent(ctx, func(bin string) (string, error) {
 		switch bin {
-		case "claude", "codex", "opencode", "pi":
+		case "claude", "codex", "traex", "opencode", "pi":
 			return "", &exec.Error{Name: bin, Err: exec.ErrNotFound}
 		case "acli":
 			return "/usr/bin/acli", nil

@@ -18,7 +18,7 @@ func fakeLookPath(bin string) (string, error) { return "/fake/bin/" + bin, nil }
 // opt-out (disable_project_settings=true), a verified harness passes the gate and
 // its pipeline agent reports neutralized.
 func TestNewPipelineAgent_OptOut_AdmitsVerifiedHarness(t *testing.T) {
-	for _, name := range []types.AgentName{types.AgentCodex, types.AgentClaude, types.AgentPi} {
+	for _, name := range []types.AgentName{types.AgentCodex, types.AgentClaude, types.AgentPi, types.AgentTraex} {
 		cfg := &config.Config{Agent: name, DisableProjectSettings: true}
 		ag, err := newPipelineAgent(context.Background(), cfg, fakeLookPath)
 		if err != nil {
@@ -51,9 +51,9 @@ func TestNewPipelineAgent_OptOut_RefusesUnverifiedHarness(t *testing.T) {
 // no suppression knob - is admitted and runs exactly as before.
 func TestNewPipelineAgent_NoOptOut_AdmitsEveryHarness(t *testing.T) {
 	// rovodev is omitted: its resolution runs a real version probe that a fake
-	// binary path cannot satisfy. opencode/pi/copilot already prove that an
-	// unverified adapter is admitted when the repo did not opt out.
-	for _, name := range []types.AgentName{types.AgentCodex, types.AgentClaude, types.AgentOpenCode, types.AgentPi, types.AgentCopilot} {
+	// binary path cannot satisfy. The remaining native adapters prove they are
+	// admitted when the repo did not opt out, verified knob or not.
+	for _, name := range []types.AgentName{types.AgentCodex, types.AgentClaude, types.AgentTraex, types.AgentOpenCode, types.AgentPi, types.AgentCopilot} {
 		cfg := &config.Config{Agent: name} // DisableProjectSettings defaults false
 		ag, err := newPipelineAgent(context.Background(), cfg, fakeLookPath)
 		if err != nil {
